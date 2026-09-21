@@ -64,6 +64,16 @@ public class AuthService {
         }
     }
 
+    @Transactional
+    public User updateNickname(Long userId, String nickname) {
+        // 인증 필터가 넘긴 User는 영속 상태가 아니라서, 다시 조회해 같은 트랜잭션 안에서 바꿔야 변경이 저장된다.
+        User user = userRepository.findById(userId)
+                .filter(u -> u.getDeletedAt() == null)
+                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
+        user.changeNickname(nickname);
+        return user;
+    }
+
     @Transactional(readOnly = true)
     public String login(String email, String rawPassword) {
         // 이메일이 없는 경우와 비밀번호가 틀린 경우의 메시지를 절대 구분하지 않는다(존재 여부 노출 방지).

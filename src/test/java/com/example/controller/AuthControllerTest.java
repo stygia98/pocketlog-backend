@@ -3,6 +3,7 @@ package com.example.controller;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -21,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.example.dto.LoginRequest;
 import com.example.dto.SignupRequest;
+import com.example.dto.UpdateNicknameRequest;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -130,6 +132,48 @@ class AuthControllerTest {
         mockMvc.perform(get("/api/v1/auth/me"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void 닉네임을_바꾸면_me에_새_닉네임이_반영된다() throws Exception {
+        signup("nick1@example.com", "password1", "예전이름");
+        String token = login("nick1@example.com", "password1");
+
+        mockMvc.perform(put("/api/v1/auth/me")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new UpdateNicknameRequest("새이름"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.nickname").value("새이름"))
+                .andExpect(jsonPath("$.data.email").value("nick1@example.com"));
+
+        mockMvc.perform(get("/api/v1/auth/me")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(jsonPath("$.data.nickname").value("새이름"));
+    }
+
+    @Test
+    void 빈_닉네임과_51자_닉네임은_400을_반환한다() throws Exception {
+        signup("nick2@example.com", "password1", "이름");
+        String token = login("nick2@example.com", "password1");
+
+        for (String invalid : new String[] {"   ", "가".repeat(51)}) {
+            mockMvc.perform(put("/api/v1/auth/me")
+                            .header("Authorization", "Bearer " + token)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(new UpdateNicknameRequest(invalid))))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error.code").value("INVALID_INPUT"));
+        }
+    }
+
+    @Test
+    void 토큰_없이_닉네임을_바꾸면_401을_반환한다() throws Exception {
+        mockMvc.perform(put("/api/v1/auth/me")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new UpdateNicknameRequest("새이름"))))
+                .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error.code").value("UNAUTHORIZED"));
     }
 

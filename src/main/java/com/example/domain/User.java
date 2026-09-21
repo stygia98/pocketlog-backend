@@ -53,6 +53,11 @@ public class User extends BaseEntity {
         return nickname;
     }
 
+    // 화면에서 바꿀 수 있는 유일한 프로필 값(AUTH-10). 이메일·비밀번호는 바꾸지 않는다.
+    public void changeNickname(String nickname) {
+        this.nickname = nickname;
+    }
+
     public LocalDateTime getDeletedAt() {
         return deletedAt;
     }

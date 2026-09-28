@@ -36,3 +36,6 @@ build/
 # .env*만 쓰면 .env.example까지 무시되므로 예외 줄이 반드시 필요하다
 .env*
 !.env.example
+
+# IDE 워크스페이스 메타데이터 — 개발 환경 산출물이다
+.metadata/
